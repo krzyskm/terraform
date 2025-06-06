@@ -1,17 +1,17 @@
 resource "azurerm_linux_virtual_machine" "appvm" {
-  count = var.virtual_machine_count
-  name                = "webvm0${count.index+1}"
-  resource_group_name = var.resource_group_name
-  location            = var.location
-  size                = "Standard_B1s"
-  admin_username      = "linuxadmin"
-  admin_password = "Azure@123"
+  count                           = var.virtual_machine_count
+  name                            = "webvm0${count.index + 1}"
+  resource_group_name             = var.resource_group_name
+  location                        = var.location
+  size                            = "Standard_B1s"
+  admin_username                  = "linuxadmin"
+  admin_password                  = "Azure@123"
   disable_password_authentication = false
   network_interface_ids = [
     var.virtual_network_interface_ids[count.index]
   ]
 
-    os_disk {
+  os_disk {
     caching              = "ReadWrite"
     storage_account_type = "Standard_LRS"
   }
@@ -23,4 +23,20 @@ resource "azurerm_linux_virtual_machine" "appvm" {
     version   = "latest"
   }
 }
+resource "azurerm_managed_disk" "datadisk" {
+  count                = var.virtual_machine_count
+  name                 = "datadisk${count.index}"
+  resource_group_name  = var.resource_group_name
+  location             = var.location
+  storage_account_type = "Standard_LRS"
+  disk_size_gb         = 4
+  create_option        = "Empty"
+}
 
+resource "azurerm_virtual_machine_data_disk_attachment" "datadiskattachment" {
+  count              = var.virtual_machine_count
+  managed_disk_id    = azurerm_managed_disk.datadisk[count.index].id
+  virtual_machine_id = azurerm_linux_virtual_machine.appvm[count.index].id
+  lun                = "0"
+  caching            = "ReadWrite"
+}
